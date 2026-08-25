@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Menorca Cash_v 2.9.0 | medbasha</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-512.png">
+    
+    <style>
+        :root {
+            --bg: #1a1a1a; --card: #262626; --text: #f0f0f0;
+            --blue: #3498db; --orange: #e67e22; --grey: #95a5a6;
+            --purple: #9b59b6; --red: #e74c3c; --green: #2ecc71;
+            --yellow: #f1c40f; --dark-blue: #34495e;
+        }
+        * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; box-sizing: border-box; }
+        input, select { -webkit-user-select: auto; user-select: auto; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 12px; overflow-x: hidden; }
+        
+        .dashboard { background: var(--card); padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 15px; border-bottom: 4px solid var(--green); cursor: pointer; transition: 0.3s ease; position: relative; }
+        .app-name { font-size: 0.8em; letter-spacing: 2px; color: var(--grey); text-transform: uppercase; margin-bottom: 5px; }
+        .balance { font-size: 2.4em; font-weight: bold; margin: 5px 0; color: var(--green); transition: 0.3s; }
+        .sub-label { font-size: 0.6em; color: var(--grey); letter-spacing: 1px; }
+
+        .dashboard.warning-limit { border-bottom-color: var(--orange); animation: pulse-orange 1.5s infinite alternate; }
+        .dashboard.danger-limit { border-bottom-color: var(--red); animation: flash-red 0.8s infinite alternate; }
+
+        @keyframes pulse-orange { 0% { box-shadow: 0 0 4px rgba(230, 126, 34, 0.2); } 100% { box-shadow: 0 0 15px rgba(230, 126, 34, 0.6); } }
+        @keyframes flash-red { 0% { background: var(--card); } 100% { background: #3a1c1c; box-shadow: 0 0 20px rgba(231, 76, 60, 0.7); } }
+
+        .debt-banner { background: #222; border-radius: 12px; padding: 10px 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; font-size: 0.8em; }
+        .debt-banner span { color: var(--grey); }
+        .debt-banner b { color: var(--purple); }
+
+        .section-title { font-size: 0.75em; color: #888; text-transform: uppercase; margin: 18px 0 8px 5px; letter-spacing: 1px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        .btn { background: var(--card); border: none; color: white; padding: 16px; border-radius: 12px; font-size: 0.9em; text-align: left; transition: 0.2s; border-left: 4px solid transparent; outline: none; }
+        .btn:active { background: #333; transform: scale(0.96); }
+        
+        .l-diario { border-left-color: var(--blue); } .l-online { border-left-color: var(--orange); }
+        .l-motor { border-left-color: var(--grey); } .l-familia { border-left-color: var(--red); }
+        .l-niños { border-left-color: var(--yellow); } .l-fijos { border-left-color: var(--purple); }
+        .l-manual { border-left-color: #1abc9c; background: #2c3e50; }
+
+        input#monto { width: 100%; box-sizing: border-box; background: transparent; border: none; border-bottom: 2px solid #333; color: white; font-size: 2.2em; text-align: center; padding: 10px; margin-bottom: 10px; outline: none; transition: 0.3s; }
+        input#monto.error { border-bottom-color: var(--red); animation: shake 0.3s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+        .full-screen { position: fixed; top: 0; left: 100%; width: 100%; height: 100%; background: var(--bg); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 100; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .full-screen.active { left: 0; }
+        .header-alt { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .btn-back { background: var(--card); border: none; color: white; padding: 10px 15px; border-radius: 10px; }
+        .btn-undo-header { background: var(--dark-blue); border: 1px solid var(--blue); color: white; padding: 8px 12px; border-radius: 10px; font-size: 0.8em; font-weight: bold; cursor: pointer; }
+
+        .form-group { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 12px; border-left: 5px solid var(--group-color, var(--blue)); box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+        .config-input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid #444; color: white; padding: 10px; border-radius: 8px; margin-top: 6px; font-size: 1em; outline: none; }
+        
+        .btn-save { width: 100%; background: var(--green); color: black; border: none; padding: 15px; border-radius: 10px; font-weight: bold; margin-top: 10px; transition: 0.2s; cursor: pointer; }
+        .btn-save:active { transform: scale(0.97); }
+        
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 15px 0; border-bottom: 1px solid #333; font-size: 0.9em; }
+        .hist-monto { text-align: right; font-weight: bold; color: var(--red); }
+        .hist-ingreso { color: var(--green) !important; }
+
+        .tabs-container { display: flex; background: #111; border-radius: 10px; margin-bottom: 15px; padding: 4px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
+        .tab-btn { flex: 1; padding: 12px; text-align: center; color: var(--grey); font-size: 0.8em; font-weight: bold; cursor: pointer; transition: 0.3s; border-radius: 8px; }
+        .tab-btn.active { background: var(--purple); color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+
+        .card-aplazado { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 14px; border-left: 6px solid var(--card-color, var(--purple)); position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: 0.2s; }
+        .card-aplazado-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.05em; margin-bottom: 4px; }
+        .card-aplazado-sub { font-size: 0.82em; color: var(--grey); margin-bottom: 5px; }
+        .progress-bar-bg { background: #111; border-radius: 6px; height: 8px; width: 100%; overflow: hidden; margin-top: 10px; }
+        .progress-bar-fill { background: var(--card-color, var(--purple)); height: 100%; transition: width 0.4s ease; }
+
+        .btn-card-action { background: rgba(255,255,255,0.1); border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.8em; margin-right: 5px; margin-top: 8px; }
+        .btn-card-edit { background: var(--yellow); color: black; font-weight: bold; }
+
+        .card-formulario { background: var(--card); border-radius: 14px; padding: 18px; margin-bottom: 15px; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .card-formulario::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--blue), var(--purple), var(--orange)); border-top-left-radius: 14px; border-top-right-radius: 14px; }
+        .form-header { font-size: 0.9em; font-weight: bold; color: var(--text); margin-bottom: 15px; text-align: center; letter-spacing: 1px; }
+
+        .color-picker-grid { display: flex; gap: 8px; margin-top: 6px; }
+        .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .color-dot.selected { border-color: white; transform: scale(1.15); box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+        .nav-container-rect { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--bg); padding: 10px 12px 20px 12px; z-index: 90; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .btn-rect-lg { background: var(--card); border: none; color: white; padding: 16px 6px; border-radius: 14px; font-size: 0.8em; font-weight: bold; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); outline: none; transition: 0.2s; }
+        .btn-rect-lg:active { background: #333; transform: scale(0.97); }
+        .btn-rect-config { border-bottom: 3px solid var(--grey); }
+        .btn-rect-aplazados { border-bottom: 3px solid var(--purple); }
+        .btn-rect-historial { border-bottom: 3px solid var(--green); }
+
+        .firma { position: fixed; bottom: 85px; left: 15px; font-size: 0.55em; color: #222; pointer-events: none; letter-spacing: 2px; font-weight: bold; z-index: 85; }
+    </style>
+</head>
+<body>
+
+    <div id="pantalla-principal">
+        <div class="dashboard" id="panel-control" onclick="abrirHistorial()">
+            <div class="app-name">Menorca Cash_v 2.9.0</div>
+            <div class="balance" id="total">0,00 €</div>
+            <div class="sub-label" id="estado-texto">DISPONIBLE VIRTUAL</div>
+        </div>
+
+        <div class="debt-banner" id="banner-deuda">
+            <span>Plazos activos este mes:</span>
+            <b id="banner-deuda-monto">0,00 €</b>
+        </div>
+
+        <input type="number" id="monto" placeholder="0.00" inputmode="decimal">
+
+        <div class="section-title">Día a día y Caprichos</div>
+        <div class="grid">
+            <button class="btn l-diario" onclick="addGasto('☕ Diario')">☕ Diario</button>
+            <button class="btn l-online" onclick="addGasto('📦 Capricho')">📦 Capricho</button>
+        </div>
+
+        <div class="section-title">Vehículos y Alimentación</div>
+        <div class="grid">
+            <button class="btn l-motor" onclick="addGasto('⛽ Gasolina')">⛽ Gasolina</button>
+            <button class="btn l-motor" onclick="addGasto('🛒 Súper')">🛒 Súper</button>
+        </div>
+
+        <div class="section-title">Familia y Hogar</div>
+        <div class="grid">
+            <button class="btn l-familia" onclick="addGasto('💸 Ayuda Ext.')">💸 Ayuda Ext.</button>
+            <button class="btn l-niños" onclick="addGasto('👦 Niños')">👦 Niños</button>
+        </div>
+
+        <div class="section-title">Recibos e Imprevistos</div>
+        <div class="grid">
+            <button class="btn l-fijos" onclick="addGasto('🌐 Internet')">🌐 Internet</button>
+            <button class="btn l-manual" onclick="addGastoManual()">📝 Gasto Manual</button>
+        </div>
+        
+        <div style="height: 120px;"></div>
+    </div>
+
+    <!-- PANTALLA HISTORIAL CON OPCIÓN DESHACER EN CABECERA -->
+    <div id="pantalla-historial" class="full-screen">
+        <div class="header-alt">
+            <div style="font-weight: bold; color: var(--green); font-size: 0.9em;">HISTORIAL</div>
+            <button class="btn-undo-header" onclick="deshacerUltimoHistorial()">↩️ DESHACER ÚLTIMO</button>
+            <button class="btn-back" onclick="cerrarPantallas()">VOLVER</button>
+        </div>
+        <table id="lista-gastos"><tbody></tbody></table>
+        <div style="height: 100px;"></div>
+    </div>
+
+    <!-- PANTALLA GASTOS APLAZADOS -->
+    <div id="pantalla-aplazados" class="full-screen">
+        <div class="header-alt">
+            <div style="font-weight: bold; color: var(--purple);">GASTOS APLAZADOS</div>
+            <button class="btn-back" onclick="cerrarPantallas()">VOLVER</button>
+        </div>
+
+        <div class="tabs-container">
+            <div id="tab-btn-lista" class="tab-btn active" onclick="cambiarTabAplazados('lista')">📋 MIS PLAZOS</div>
+            <div id="tab-btn-nuevo" class="tab-btn" onclick="cambiarTabAplazados('nuevo')">✨ NUEVO PLAZO</div>
+        </div>
+
+        <div id="vista-lista-aplazados">
+            <div style="background: var(--card); padding: 14px; border-radius: 12px; margin-bottom: 15px; text-align: center; border: 1px solid #333;">
+                <span style="font-size: 0.75em; color: var(--grey);">COMPROMETIDO ESTE MES:</span>
+                <div id="total-cuotas-mes" style="font-size: 1.5em; font-weight: bold; color: var(--purple);">0,00 €</div>
+            </div>
+            <div id="contenedor-aplazados"></div>
+        </div>
+        
+        <div id="vista-nuevo-aplazado" style="display: none;">
+            <div class="card-formulario">
+                <div class="form-header" id="titulo-formulario-apl">✨ REGISTRAR COMPRA APLAZADA</div>
+                
+                <div class="form-group" style="--group-color: var(--blue);">
+                    <label style="font-size: 0.7em; color: var(--blue); font-weight: bold;">LUGAR DE COMPRA</label>
+                    <input type="text" id="apl-lugar" class="config-input" placeholder="Ej: Amazon, Carrefour">
+                </div>
+
+                <div class="form-group" style="--group-color: var(--orange);">
+                    <label style="font-size: 0.7em; color: var(--orange); font-weight: bold;">PRODUCTO / CANTIDAD</label>
+                    <input type="text" id="apl-producto" class="config-input" placeholder="Ej: TV 55&quot;">
+                </div>
+
+                <div class="form-group" style="--group-color: #f39c12;">
+                    <label style="font-size: 0.7em; color: #f39c12; font-weight: bold;">ENTIDAD FINANCIERA</label>
+                    <input type="text" id="apl-entidad" class="config-input" placeholder="Ej: Cetelem, CaixaBank, PayPal">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group" style="--group-color: var(--green);">
+                        <label style="font-size: 0.7em; color: var(--green); font-weight: bold;">IMPORTE TOTAL (€)</label>
+                        <input type="number" id="apl-total" class="config-input" placeholder="Ej: 600" oninput="calcularCuotaYFechas()">
+                    </div>
+                    <div class="form-group" style="--group-color: #e74c3c;">
+                        <label style="font-size: 0.7em; color: #e74c3c; font-weight: bold;">MESES APLAZADOS</label>
+                        <select id="apl-meses-num" class="config-input" onchange="calcularCuotaYFechas()">
+                            <option value="3">3 Meses</option>
+                            <option value="6" selected>6 Meses</option>
+                            <option value="9">9 Meses</option>
+                            <option value="12">12 Meses</option>
+                            <option value="18">18 Meses</option>
+                            <option value="24">24 Meses</option>
+                            <option value="36">36 Meses</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="--group-color: var(--dark-blue);">
+                    <label style="font-size: 0.7em; color: var(--grey); font-weight: bold;">¿CUÁNDO COBRAN LA 1ª CUOTA?</label>
+                    <select id="apl-tipo-cobro" class="config-input" onchange="calcularCuotaYFechas()">
+                        <option value="inmediato">Inmediato (Mismo mes de compra)</option>
+                        <option value="siguiente">Mes Siguiente (Empiezan a cobrar luego)</option>
+                    </select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group" style="--group-color: var(--purple);">
+                        <label style="font-size: 0.7em; color: var(--purple); font-weight: bold;">FECHA INICIO</label>
+                        <input type="date" id="apl-inicio" class="config-input" onchange="calcularCuotaYFechas()">
+                    </div>
+                    <div class="form-group" style="--group-color: var(--yellow);">
+                        <label style="font-size: 0.7em; color: var(--yellow); font-weight: bold;">FECHA FIN</label>
+                        <input type="date" id="apl-fin" class="config-input" onchange="recalcularDesdeFechas()">
+                    </div>
+                </div>
+
+                <div class="form-group" style="--group-color: #1abc9c;">
+                    <label style="font-size: 0.7em; color: #1abc9c; font-weight: bold;">CUOTA CALCULADA (€/mes)</label>
+                    <input type="number" id="apl-cuota" class="config-input" placeholder="Se calcula sola...">
+                </div>
+
+                <div class="form-group" style="--group-color: #95a5a6;">
+                    <label style="font-size: 0.7em; color: #95a5a6; font-weight: bold;">COLOR DE LA TARJETA</label>
+                    <div class="color-picker-grid" id="selector-colores">
+                        <div class="color-dot selected" style="background: #3498db;" onclick="seleccionarColor('#3498db', this)"></div>
+                        <div class="color-dot" style="background: #e67e22;" onclick="seleccionarColor('#e67e22', this)"></div>
+                        <div class="color-dot" style="background: #9b59b6;" onclick="seleccionarColor('#9b59b6', this)"></div>
+                        <div class="color-dot" style="background: #2ecc71;" onclick="seleccionarColor('#2ecc71', this)"></div>
+                        <div class="color-dot" style="background: #f1c40f;" onclick="seleccionarColor('#f1c40f', this)"></div>
+                        <div class="color-dot" style="background: #e74c3c;" onclick="seleccionarColor('#e74c3c', this)"></div>
+                        <div class="color-dot" style="background: #00d2d3;" onclick="seleccionarColor('#00d2d3', this)"></div>
+                    </div>
+                </div>
+
+                <button id="btn-guardar-apl" class="btn-save" style="background: linear-gradient(90deg, var(--purple), var(--blue)); color: white; border: none;" onclick="guardarAplazado()">📌 GUARDAR APLAZADO</button>
+            </div>
+        </div>
+        
+        <div style="height: 100px;"></div>
+    </div>
+
+    <!-- PANTALLA CONFIGURACIÓN -->
+    <div id="pantalla-config" class="full-screen">
+        <div class="header-alt">
+            <div style="font-weight: bold; color: var(--orange);">PRESUPUESTO VIRTUAL</div>
+            <button class="btn-back" onclick="cerrarPantallas()">VOLVER</button>
+        </div>
+        <p style="font-size: 0.8em; color: #888;">Elige la cantidad límite con la que deseas empezar a restar:</p>
+        
+        <label style="font-size: 0.7em;">CANTIDAD ASIGNADA (€)</label>
+        <input type="number" id="input-sueldo" class="config-input" placeholder="Ej: 500">
+        
+        <button class="btn-save" onclick="iniciarNuevoMes()">🔄 REINICIAR CANTIDAD VIRTUAL</button>
+
+        <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 20px;">
+            <b style="font-size: 0.8em; color: var(--grey);">COPIA DE SEGURIDAD (INDEXEDDB)</b>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                <button class="btn-save" style="background: var(--blue); color: white; margin:0;" onclick="exportarBackup()">📤 EXPORTAR</button>
+                <button class="btn-save" style="background: var(--orange); color: white; margin:0;" onclick="document.getElementById('file-input-backup').click()">📥 IMPORTAR</button>
+                <input type="file" id="file-input-backup" accept=".json" style="display: none;" onchange="importarBackupArchivo(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- BARRA DE NAVEGACIÓN -->
+    <div class="nav-container-rect">
+        <button class="btn-rect-lg btn-rect-config" onclick="abrirConfig()">⚙️ AJUSTES</button>
+        <button class="btn-rect-lg btn-rect-aplazados" onclick="abrirAplazados()">📅 PLAZOS</button>
+        <button class="btn-rect-lg btn-rect-historial" onclick="abrirHistorial()">🕒 LISTA</button>
+    </div>
+    
+    <div class="firma">medbasha</div>
+
+    <script>
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+
+        const dbName = "MenorcaCashDB_v290";
+        let db = null;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(dbName, 1);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    if (!db.objectStoreNames.contains("store")) {
+                        db.createObjectStore("store");
+                    }
+                };
+            });
+        }
+
+        function getDB(key) {
+            return new Promise((resolve, reject) => {
+                if (!db) return resolve(null);
+                const tx = db.transaction("store", "readonly");
+                const store = tx.objectStore("store");
+                const req = store.get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function saveDB(key, val) {
+            return new Promise((resolve, reject) => {
+                if (!db) return resolve();
+                const tx = db.transaction("store", "readwrite");
+                const store = tx.objectStore("store");
+                const cleanVal = JSON.parse(JSON.stringify(val));
+                store.put(cleanVal, key);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        let balance = 0;
+        let cantidadMax = 0;
+        let historial = [];
+        let aplazados = [];
+        let editIndexAplazado = -1;
+        let colorSeleccionadoApl = '#3498db';
+
+        function vibrate() { if (navigator.vibrate) navigator.vibrate(40); }
+
+        function seleccionarColor(hex, el) {
+            vibrate();
+            colorSeleccionadoApl = hex;
+            document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        async function deshacerUltimoHistorial() {
+            if (historial.length === 0) {
+                return alert("No hay ningún gasto para deshacer.");
+            }
+            vibrate();
+            const ultimo = historial[0];
+            if (confirm(`¿Deshacer el último registro ("${ultimo.concepto}")?`)) {
+                await borrarGasto(0);
+            }
+        }
+
+        function cambiarTabAplazados(tab) {
+            vibrate();
+            document.getElementById('tab-btn-lista').classList.remove('active');
+            document.getElementById('tab-btn-nuevo').classList.remove('active');
+            document.getElementById('vista-lista-aplazados').style.display = 'none';
+            document.getElementById('vista-nuevo-aplazado').style.display = 'none';
+
+            if (tab === 'lista') {
+                document.getElementById('tab-btn-lista').classList.add('active');
+                document.getElementById('vista-lista-aplazados').style.display = 'block';
+                editIndexAplazado = -1;
+                document.getElementById('titulo-formulario-apl').innerText = "✨ REGISTRAR COMPRA APLAZADA";
+                document.getElementById('btn-guardar-apl').innerHTML = "📌 GUARDAR APLAZADO";
+                limpiarFormularioAplazado();
+            } else {
+                document.getElementById('tab-btn-nuevo').classList.add('active');
+                document.getElementById('vista-nuevo-aplazado').style.display = 'block';
+                if (editIndexAplazado === -1) inicializarFechaHoy();
+            }
+        }
+
+        function inicializarFechaHoy() {
+            const inicioInput = document.getElementById('apl-inicio');
+            if (!inicioInput.value) {
+                const hoy = new Date();
+                inicioInput.value = hoy.toISOString().split('T')[0];
+            }
+        }
+
+        function calcularCuotaYFechas() {
+            if(editIndexAplazado === -1) inicializarFechaHoy();
+            const total = parseFloat(document.getElementById('apl-total').value);
+            const mesesNum = parseInt(document.getElementById('apl-meses-num').value) || 6;
+            const inicioStr = document.getElementById('apl-inicio').value;
+            const tipoCobro = document.getElementById('apl-tipo-cobro').value;
+
+            if (inicioStr) {
+                const inicio = new Date(inicioStr);
+                const fin = new Date(inicio);
+                const ajuste = (tipoCobro === 'siguiente') ? 1 : 0;
+                fin.setMonth(fin.getMonth() + mesesNum + ajuste);
+                document.getElementById('apl-fin').value = fin.toISOString().split('T')[0];
+            }
+
+            if (total > 0 && mesesNum > 0) {
+                const cuotaCalc = total / mesesNum;
+                document.getElementById('apl-cuota').value = cuotaCalc.toFixed(2);
+            }
+        }
+
+        function recalcularDesdeFechas() {
+            const total = parseFloat(document.getElementById('apl-total').value);
+            const mesesNum = parseInt(document.getElementById('apl-meses-num').value) || 6;
+            if (total > 0 && mesesNum > 0) {
+                const cuotaCalc = total / mesesNum;
+                document.getElementById('apl-cuota').value = cuotaCalc.toFixed(2);
+            }
+        }
+
+        async function verificarCobrosAutomaticos() {
+            const hoy = new Date();
+            hoy.setHours(0,0,0,0);
+            let cambios = false;
+
+            for (let item of aplazados) {
+                if (!item.inicio) continue;
+                
+                const inicio = new Date(item.inicio);
+                inicio.setHours(0,0,0,0);
+                
+                let cuotasDeberiaTener = 0;
+                let mesesTotales = item.meses || 1;
+
+                for (let i = 0; i < mesesTotales; i++) {
+                    let fechaCobro = new Date(inicio);
+                    if (item.tipoCobro === 'siguiente') {
+                        fechaCobro.setMonth(fechaCobro.getMonth() + i + 1);
+                    } else {
+                        fechaCobro.setMonth(fechaCobro.getMonth() + i);
+                    }
+                    
+                    if (hoy >= fechaCobro) {
+                        cuotasDeberiaTener++;
+                    }
+                }
+
+                if (cuotasDeberiaTener > item.cuotasPagadas) {
+                    const pendientes = cuotasDeberiaTener - item.cuotasPagadas;
+                    const totalDescontar = pendientes * item.cuota;
+                    
+                    item.cuotasPagadas = cuotasDeberiaTener;
+                    balance -= totalDescontar;
+                    
+                    historial.unshift({ 
+                        concepto: `🤖 Auto-Cuota (${pendientes}x): ${item.lugar} (${item.entidad || 'Plazo'})`, 
+                        monto: totalDescontar, 
+                        fecha: new Date().getTime() 
+                    });
+                    cambios = true;
+                }
+            }
+
+            if (cambios) {
+                await saveDB('balance_mb', balance);
+                await saveDB('historial_mb', historial);
+                await saveDB('aplazados_mb', aplazados);
+            }
+        }
+
+        async function renderApp() {
+            await verificarCobrosAutomaticos();
+
+            document.getElementById('total').innerText = balance.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+            
+            const panel = document.getElementById('panel-control');
+            const textoEstado = document.getElementById('estado-texto');
+            const totalEuros = document.getElementById('total');
+
+            panel.className = "dashboard"; 
+            totalEuros.style.color = "var(--green)";
+            textoEstado.innerText = "DISPONIBLE VIRTUAL";
+
+            if (balance <= 0) {
+                panel.classList.add('danger-limit');
+                totalEuros.style.color = "var(--red)";
+                textoEstado.innerText = "🛑 ¡LÍMITE ALCANZADO!";
+            } else if (cantidadMax > 0 && balance <= (cantidadMax * 0.15)) {
+                panel.classList.add('warning-limit');
+                totalEuros.style.color = "var(--orange)";
+                textoEstado.innerText = "⚠️ CASI AL LÍMITE MÁXIMO";
+            }
+
+            const tbody = document.querySelector('#lista-gastos tbody');
+            tbody.innerHTML = "";
+            historial.forEach((item, i) => {
+                const fila = tbody.insertRow();
+                fila.onclick = () => { if(confirm(`¿Borrar "${item.concepto}"?`)) borrarGasto(i); };
+                const esIngreso = item.monto < 0;
+                const displayMonto = esIngreso ? `+${Math.abs(item.monto).toFixed(2)}` : `-${item.monto.toFixed(2)}`;
+                fila.innerHTML = `
+                    <td style="color: #ccc;">${item.concepto}</td>
+                    <td class="hist-monto ${esIngreso ? 'hist-ingreso' : ''}">${displayMonto} €</td>
+                `;
+            });
+
+            renderAplazados();
+        }
+
+        function renderAplazados() {
+            const cont = document.getElementById('contenedor-aplazados');
+            cont.innerHTML = "";
+            let sumaCuotasMes = 0;
+
+            if (aplazados.length === 0) {
+                cont.innerHTML = `<p style="font-size: 0.8em; color: var(--grey); text-align: center; margin-top: 20px;">No tienes compras aplazadas registradas.</p>`;
+            }
+
+            aplazados.forEach((item, index) => {
+                const pagado = item.cuotasPagadas * item.cuota;
+                const pendiente = Math.max(0, item.total - pagado);
+                const pct = Math.min(100, Math.round((pagado / item.total) * 100));
+                
+                if (pendiente > 0) sumaCuotasMes += item.cuota;
+
+                const colorCard = item.color || '#3498db';
+                const entidadTxt = item.entidad ? ` | 🏦 ${item.entidad}` : '';
+
+                const card = document.createElement('div');
+                card.className = "card-aplazado";
+                card.style.setProperty('--card-color', colorCard);
+
+                card.innerHTML = `
+                    <div class="card-aplazado-header">
+                        <span>🛒 ${item.lugar} - ${item.producto}</span>
+                        <span style="color: ${colorCard};">${item.cuota.toFixed(2)} €/mes</span>
+                    </div>
+                    <div class="card-aplazado-sub">
+                        Total: <b>${item.total.toFixed(2)} €</b> | Pendiente: <b style="color: var(--red);">${pendiente.toFixed(2)} €</b>
+                    </div>
+                    <div class="card-aplazado-sub">
+                        Inicio: ${item.inicio || 'N/A'} ${entidadTxt}
+                    </div>
+                    <div style="font-size: 0.72em; color: #aaa; text-align: right;">Cuotas: ${item.cuotasPagadas} de ${item.meses} (${pct}%)</div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${pct}%; background: ${colorCard};"></div>
+                    </div>
+                    <div style="margin-top: 10px; display: flex;">
+                        <button class="btn-card-action" onclick="opcionesAplazado(${index})">💳 Opciones / Pagar</button>
+                        <button class="btn-card-action btn-card-edit" onclick="cargarParaEdicion(${index})">✏️ Editar</button>
+                    </div>
+                `;
+                cont.appendChild(card);
+            });
+
+            document.getElementById('total-cuotas-mes').innerText = sumaCuotasMes.toFixed(2) + " €";
+            document.getElementById('banner-deuda-monto').innerText = sumaCuotasMes.toFixed(2) + " €";
+        }
+
+        function limpiarFormularioAplazado() {
+            document.getElementById('apl-lugar').value = "";
+            document.getElementById('apl-producto').value = "";
+            document.getElementById('apl-entidad').value = "";
+            document.getElementById('apl-total').value = "";
+            document.getElementById('apl-meses-num').value = "6";
+            document.getElementById('apl-cuota').value = "";
+            document.getElementById('apl-inicio').value = "";
+            document.getElementById('apl-fin').value = "";
+            document.getElementById('apl-tipo-cobro').value = "inmediato";
+            colorSeleccionadoApl = '#3498db';
+            document.querySelectorAll('.color-dot').forEach((d, i) => {
+                if(i === 0) d.classList.add('selected');
+                else d.classList.remove('selected');
+            });
+        }
+
+        function cargarParaEdicion(index) {
+            editIndexAplazado = index;
+            const item = aplazados[index];
+            
+            document.getElementById('apl-lugar').value = item.lugar;
+            document.getElementById('apl-producto').value = item.producto;
+            document.getElementById('apl-entidad').value = item.entidad || "";
+            document.getElementById('apl-total').value = item.total;
+            document.getElementById('apl-meses-num').value = item.meses || 6;
+            document.getElementById('apl-cuota').value = item.cuota;
+            document.getElementById('apl-inicio').value = item.inicio;
+            document.getElementById('apl-fin').value = item.fin;
+            if(item.tipoCobro) document.getElementById('apl-tipo-cobro').value = item.tipoCobro;
+            
+            if(item.color) {
+                colorSeleccionadoApl = item.color;
+                document.querySelectorAll('.color-dot').forEach(d => {
+                    if(d.style.backgroundColor === item.color || d.style.background.includes(item.color)) {
+                        d.classList.add('selected');
+                    } else {
+                        d.classList.remove('selected');
+                    }
+                });
+            }
+
+            document.getElementById('titulo-formulario-apl').innerText = "✏️ EDITAR COMPRA APLAZADA";
+            document.getElementById('btn-guardar-apl').innerHTML = "💾 GUARDAR CAMBIOS";
+            
+            cambiarTabAplazados('nuevo');
+        }
+
+        async function guardarAplazado() {
+            const lugar = document.getElementById('apl-lugar').value.trim();
+            const producto = document.getElementById('apl-producto').value.trim();
+            const entidad = document.getElementById('apl-entidad').value.trim();
+            const total = parseFloat(document.getElementById('apl-total').value);
+            const cuota = parseFloat(document.getElementById('apl-cuota').value);
+            const inicio = document.getElementById('apl-inicio').value;
+            const fin = document.getElementById('apl-fin').value;
+            const meses = parseInt(document.getElementById('apl-meses-num').value) || 6;
+            const tipoCobro = document.getElementById('apl-tipo-cobro').value;
+
+            if (!lugar || !producto || isNaN(total) || isNaN(cuota) || total <= 0 || cuota <= 0 || !inicio) {
+                return alert("Por favor completa lugar, producto, total, fechas o cuota correctamente.");
+            }
+
+            vibrate();
+
+            if (editIndexAplazado >= 0) {
+                aplazados[editIndexAplazado].lugar = lugar;
+                aplazados[editIndexAplazado].producto = producto;
+                aplazados[editIndexAplazado].entidad = entidad;
+                aplazados[editIndexAplazado].total = total;
+                aplazados[editIndexAplazado].cuota = cuota;
+                aplazados[editIndexAplazado].inicio = inicio;
+                aplazados[editIndexAplazado].fin = fin;
+                aplazados[editIndexAplazado].meses = meses;
+                aplazados[editIndexAplazado].tipoCobro = tipoCobro;
+                aplazados[editIndexAplazado].color = colorSeleccionadoApl;
+            } else {
+                aplazados.push({ 
+                    lugar, producto, entidad, total, cuota, inicio, fin, meses, tipoCobro,
+                    cuotasPagadas: 0, color: colorSeleccionadoApl 
+                });
+            }
+
+            limpiarFormularioAplazado();
+            editIndexAplazado = -1;
+            
+            await guardarYRefrescar();
+            cambiarTabAplazados('lista');
+        }
+
+        async function opcionesAplazado(index) {
+            vibrate();
+            const item = aplazados[index];
+            const accion = confirm(`¿Ajustar la compra "${item.producto}"?\n\n[Aceptar] = Añadir 1 cuota pagada manualmente\n[Cancelar] = Ver opción de eliminar`);
+            
+            if (accion) {
+                item.cuotasPagadas += 1;
+                if(confirm(`¿Descontar ${item.cuota.toFixed(2)}€ de tu Disponible Virtual ahora?`)) {
+                    balance -= item.cuota;
+                    historial.unshift({ concepto: `💳 Cuota Manual: ${item.lugar} (${item.entidad || 'Plazo'})`, monto: item.cuota, fecha: new Date().getTime() });
+                }
+            } else {
+                if (confirm(`¿Quieres ELIMINAR definitivamente el registro de "${item.producto}"?`)) {
+                    aplazados.splice(index, 1);
+                }
+            }
+            await guardarYRefrescar();
+        }
+
+        async function addGasto(concepto) {
+            const mInput = document.getElementById('monto');
+            const monto = parseFloat(mInput.value);
+            
+            if (isNaN(monto) || monto <= 0) {
+                mInput.classList.add('error');
+                setTimeout(() => mInput.classList.remove('error'), 300);
+                return;
+            }
+
+            vibrate();
+            balance -= monto;
+            historial.unshift({ concepto, monto, fecha: new Date().getTime() });
+            
+            await guardarYRefrescar();
+            mInput.value = "";
+        }
+
+        async function addGastoManual() {
+            const mInput = document.getElementById('monto');
+            const monto = parseFloat(mInput.value);
+            
+            if (isNaN(monto) || monto <= 0) {
+                mInput.classList.add('error');
+                setTimeout(() => mInput.classList.remove('error'), 300);
+                return;
+            }
+
+            let conceptoPersonalizado = prompt("Introduce el concepto de este gasto:");
+            if (conceptoPersonalizado === null) return; 
+            if (conceptoPersonalizado.trim() === "") conceptoPersonalizado = "📝 Gasto Manual";
+
+            vibrate();
+            balance -= monto;
+            historial.unshift({ concepto: `📝 ${conceptoPersonalizado.trim()}`, monto, fecha: new Date().getTime() });
+            
+            await guardarYRefrescar();
+            mInput.value = "";
+        }
+
+        async function borrarGasto(i) {
+            vibrate();
+            const item = historial[i];
+            balance += item.monto;
+            historial.splice(i, 1);
+            await guardarYRefrescar();
+        }
+
+        async function iniciarNuevoMes() {
+            const s = parseFloat(document.getElementById('input-sueldo').value) || 0;
+            if (s <= 0) return alert("Por favor, introduce una cantidad válida.");
+            
+            if(confirm(`¿Iniciar fondo virtual con ${s}€?`)) {
+                vibrate();
+                balance = s;
+                cantidadMax = s;
+                historial = [{ concepto: "💰 Fondo Inicial", monto: -s, fecha: new Date().getTime() }];
+                
+                await saveDB('conf_sueldo', s);
+                await guardarYRefrescar();
+                cerrarPantallas();
+            }
+        }
+
+        async function exportarBackup() {
+            vibrate();
+            const data = { balance, cantidadMax, historial, aplazados };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `menorca_cash_backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        async function importarBackupArchivo(event) {
+            vibrate();
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.balance !== undefined && parsed.historial && parsed.aplazados) {
+                        balance = parsed.balance;
+                        cantidadMax = parsed.cantidadMax || 0;
+                        historial = parsed.historial;
+                        aplazados = parsed.aplazados;
+                        await saveDB('conf_sueldo', cantidadMax);
+                        await guardarYRefrescar();
+                        alert("¡Copia de seguridad restaurada con éxito!");
+                        cerrarPantallas();
+                    } else {
+                        alert("El archivo seleccionado no tiene el formato correcto.");
+                    }
+                } catch(err) {
+                    alert("Error al procesar el archivo JSON.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = "";
+        }
+
+        async function guardarYRefrescar() {
+            await saveDB('balance_mb', balance);
+            await saveDB('historial_mb', historial);
+            await saveDB('aplazados_mb', aplazados);
+            await renderApp();
+        }
+
+        function abrirHistorial() { vibrate(); document.getElementById('pantalla-historial').classList.add('active'); }
+        function abrirAplazados() { 
+            vibrate(); 
+            cambiarTabAplazados('lista');
+            document.getElementById('pantalla-aplazados').classList.add('active'); 
+        }
+        async function abrirConfig() { 
+            vibrate();
+            document.getElementById('pantalla-config').classList.add('active'); 
+            const savedSueldo = await getDB('conf_sueldo');
+            document.getElementById('input-sueldo').value = savedSueldo || "";
+        }
+        function cerrarPantallas() { 
+            document.getElementById('pantalla-historial').classList.remove('active'); 
+            document.getElementById('pantalla-aplazados').classList.remove('active'); 
+            document.getElementById('pantalla-config').classList.remove('active'); 
+        }
+
+        async function boot() {
+            try {
+                await initDB();
+                balance = (await getDB('balance_mb')) ?? 0;
+                cantidadMax = (await getDB('conf_sueldo')) ?? 0;
+                historial = (await getDB('historial_mb')) ?? [];
+                aplazados = (await getDB('aplazados_mb')) ?? [];
+                
+                aplazados = aplazados.map(apl => {
+                    if(!apl.meses) apl.meses = 6;
+                    if(!apl.tipoCobro) apl.tipoCobro = 'inmediato';
+                    if(!apl.color) apl.color = '#3498db';
+                    if(!apl.entidad) apl.entidad = '';
+                    return apl;
+                });
+
+                await renderApp();
+            } catch (err) {
+                console.error("Error inicializando IndexedDB:", err);
+            }
+        }
+
+        boot();
+    </script>
+</body>
+</html>
